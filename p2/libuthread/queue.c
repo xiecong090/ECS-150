@@ -120,6 +120,16 @@ int queue_delete(queue_t queue, void *data)
 int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 {
 	/* TODO Phase 1 */
+	if(queue == NULL || func == NULL){
+		return -1;
+	}
+		
+	data = queue->front;
+	while(!func(*data,arg) && data != NULL)			//when func return 0, the data move to 
+	{							//next node until the rear.
+		data = data->next;
+	}
+	return 0;	
 }
 
 //just return the size of queue.
@@ -131,4 +141,3 @@ int queue_length(queue_t queue)
 	}
 	return queue->size;
 }
-
