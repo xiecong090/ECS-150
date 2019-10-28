@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "queue.h"
 
@@ -13,15 +14,15 @@ struct Qnode {
 //the queue includes size, front node, and rear node
 struct queue {
 	int size;
-	struct Qnode *front;
-	struct Qnode *rear;
+	struct Qnode* front;
+	struct Qnode* rear;
 };
 
 //create a new linked list node
-struct Qnode* newNode(Void* data)
+struct Qnode* newNode(void* data)
 {
 	struct Qnode* tempNewNode = (struct Qnode*)malloc(sizeof(struct Qnode));
-	tempNewNode->item = data;
+	tempNewNode->item = *(int*)data;
 	tempNewNode->next = NULL;
 	return tempNewNode;
 };
@@ -32,26 +33,18 @@ queue_t queue_create(void)
 	struct queue *newQueue = (struct queue*)malloc(sizeof(struct queue));
 	newQueue->size = 0;
 	newQueue->front = newQueue->rear = NULL;
-	return Q;
+	return newQueue;
 }
 
 //destroy the queue
 int queue_destroy(queue_t queue)
 {
-	if(queque == NULL){ 
-		return -1;					//if the queue is empty, return -1.
-	} else {
-		while(queue->front != NULL)
-		{
-			struct Qnode* temp = queue->front;	//create a temp node to hold the
-			free(temp);				//front node's address, then free
-			queue->size = queue->size-1;		//the address, then move the front
-			queue->front = queue->front->next;	//node to the next node.
-		}
-		if(queue->size != 0){
-			return -1;				//if the queue is empty, but the
-		}						//size is not 0. return -1.
-		queue->rear = queue->front = NULL;
+	if(queue == NULL || queue->size != 0){ 
+		return -1;					//if the queue is NULL, or its
+	} else {						//size is not 0, return -1
+		queue->front = queue->rear = NULL;
+		free(queue);
+	}
 	return 0;
 }	
 
@@ -84,9 +77,12 @@ int queue_dequeue(queue_t queue, void **data)
 	if(queue == NULL || *data == NULL || queue->size == 0){
 		return -1;
 	}
-	*data = queue->front;
-	free(data);
+	struct Qnode* temp = queue->front;
 	
+	int* value = (int*)malloc(sizeof(int));
+	*value = temp->item;
+	free(temp);
+	*data = value;
 	queue->front = queue->front->next;
 	if(queue->front == NULL){
 		queue->rear = NULL;
@@ -102,13 +98,13 @@ int queue_delete(queue_t queue, void *data)
 	if(queue == NULL || data == NULL){
 		return -1;
 	}
-	if(queue->item != *(int*)data){
+	if(queue->front->item != *(int*)data){
 		return -1;
 	}
 	
-	data = queue->front;
-	free(data);
-
+	struct Qnode* temp = queue->front;
+	free(temp);
+ 	 	
 	queue->front = queue->front->next;
 	if(queue->front == NULL){
 		queue->rear = NULL;
@@ -123,13 +119,20 @@ int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 	if(queue == NULL || func == NULL){
 		return -1;
 	}
-		
-	data = queue->front;
-	while(!func(*data,arg) && data != NULL)			//when func return 0, the data move to 
-	{							//next node until the rear.
-		data = data->next;
+
+	struct Qnode* current = queue->front;
+	void* nodeItem = &(current->item);
+	while(current != NULL)
+	{
+		if(func(nodeItem,arg) == 1){
+			*data = nodeItem;
+			return 0;
+		}
+		current = current->next;
+		nodeItem = &(current->item);
 	}
-	return 0;	
+	return 0;
+	
 }
 
 //just return the size of queue.
