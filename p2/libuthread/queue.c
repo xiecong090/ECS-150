@@ -74,7 +74,7 @@ int queue_enqueue(queue_t queue, void *data)
 int queue_dequeue(queue_t queue, void **data)
 {
 	/* TODO Phase 1 */
-	if(queue == NULL || *data == NULL || queue->size == 0){
+	if(queue == NULL || data == NULL || queue->size == 0){
 		return -1;
 	}
 	struct Qnode* temp = queue->front;
