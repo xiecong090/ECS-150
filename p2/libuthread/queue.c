@@ -7,7 +7,7 @@
 
 //linked list node to store entry data
 struct Qnode {
-	int item;
+	void* item;
 	struct Qnode* next;
 };
 
@@ -22,7 +22,7 @@ struct queue {
 struct Qnode* newNode(void* data)
 {
 	struct Qnode* tempNewNode = (struct Qnode*)malloc(sizeof(struct Qnode));
-	tempNewNode->item = *(int*)data;
+	tempNewNode->item = data;
 	tempNewNode->next = NULL;
 	return tempNewNode;
 };
@@ -77,12 +77,9 @@ int queue_dequeue(queue_t queue, void **data)
 	if(queue == NULL || data == NULL || queue->size == 0){
 		return -1;
 	}
-	struct Qnode* temp = queue->front;
 	
-	int* value = (int*)malloc(sizeof(int));
-	*value = temp->item;
-	free(temp);
-	*data = value;
+	*data = queue->front->item;
+
 	queue->front = queue->front->next;
 	if(queue->front == NULL){
 		queue->rear = NULL;
@@ -98,7 +95,7 @@ int queue_delete(queue_t queue, void *data)
 	if(queue == NULL || data == NULL){
 		return -1;
 	}
-	if(queue->front->item != *(int*)data){
+	if(*(int*)(queue->front->item) != *(int*)data){
 		return -1;
 	}
 	
@@ -116,20 +113,21 @@ int queue_delete(queue_t queue, void *data)
 int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 {
 	/* TODO Phase 1 */
+
 	if(queue == NULL || func == NULL){
 		return -1;
 	}
-
 	struct Qnode* current = queue->front;
-	void* nodeItem = &(current->item);
+	void* nodeItem;
+	printf("I am 11!\n");
 	while(current != NULL)
 	{
+		nodeItem = current->item;
 		if(func(nodeItem,arg) == 1){
 			*data = nodeItem;
 			return 0;
 		}
 		current = current->next;
-		nodeItem = &(current->item);
 	}
 	return 0;
 	
