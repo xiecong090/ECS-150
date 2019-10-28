@@ -6,8 +6,8 @@ all: $(lib)
 
 ## TODO: Phase 1.1
 
-main: test_queue.c libuthread.a
-	gcc test_queue.c -L. -luthread -o main
+main: simple_test.c libuthread.a
+	gcc simple_test.c -L. -luthread -o main
 
 libuthread.a: queue.o
 	ar -rc libuthread.a queue.o
