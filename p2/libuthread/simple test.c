@@ -4,6 +4,11 @@
 #include "queue.h"
 
 
+void step1(void)
+{
+	printf("this is step 1\n");
+}
+
 void test_create(void)
 {
     queue_t q;
@@ -12,20 +17,32 @@ void test_create(void)
 	printf("create test successed!\n");
 }
 
+void test_destroy(void)
+{
+	queue_t q,q1;
+    	q = queue_create();
+	int i = queue_destroy(q);
+	q1 = queue_create();
+	int data = 3;
+	queue_enqueue(q1,&data);
+	int k = queue_length(q1);
+	int j = queue_destroy(q1);
+}
+
 void test_queue_simple(void)
 {
-
+	printf("I am 1!\n");
     queue_t q;
-
+	printf("I am 1.5!\n");
     int data = 3, *ptr;
-
+	printf("I am 2!\n");
     q = queue_create();
-
-
+	printf("I am 5!\n");
+	printf("before enqueue, the ptr is %d\n",6);
     queue_enqueue(q, &data);
-
+	printf("after enqueue, the ptr is %d\n",7);
     queue_dequeue(q, (void**)&ptr);
-
+	printf("after dequeue, the ptr is %d\n",*ptr);
 }
 
 static int inc_item(void *data, void *arg)
@@ -75,11 +92,14 @@ void test_iterator(void)
 
 int main()
 {
+	step1();
 	test_create();
 	printf("hello!\n");
 	test_queue_simple();
-	printf("seems good!\n");
+	printf("hello!\n");
 	test_iterator();
 	printf("everything is good!\n");
+	test_destroy();
+	printf("everything is great!\n");
 	return 0;
 }
