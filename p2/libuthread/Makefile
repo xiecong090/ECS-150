@@ -1,20 +1,31 @@
 # Target library
-lib := libuthread.a
+lib		:= libuthread.a
+objs		:= queue.o uthread.o context.o preempt.o
 
-all: $(lib)
- Target library
+CC		:= gcc
+CFLAGS		:= -Wall -Werror
+CFLAGS		+= -g
 
-## TODO: Phase 1.1
+# The command 'make V=1' will explicitely print rule commands
+ifneq	($(V),1)
+Q = @
+V = 0
+endif
 
-main: simple_test.c libuthread.a
-	gcc simple_test.c -L. -luthread -o main
 
-libuthread.a: queue.o
-	ar -rc libuthread.a queue.o
+DEPFLAGS = -MMD -MF $(@:.o=.d)
 
-queue.o: queue.c queue.h
-	gcc -Wall -Werror -c -o queue.o queue.c
+deps	:= $(patsubst %.o,%.d,$(objs))
+-include $(deps)
+
+libuthread.a: $(objs)
+	@echo "CC	$@"
+	$(Q)ar rcs $@ $^	
+
+%.o: %.c %.h
+	@echo "CC	$@"
+	$(Q)$(CC) $(CFLAGS) -c -o $@ $< $(DEPFLAGS)
 
 clean:
-	rm -f queue.o libuthread.a main
-
+	@echo "CLEAN"
+	$(Q)rm -f $(lib) $(objs) $(deps)

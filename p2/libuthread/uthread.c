@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 #include "context.h"
 #include "preempt.h"
@@ -19,7 +20,7 @@ static queue_t readyQueue;
 static struct TCB* runningThread;
 static struct TCB* threadArray[USHRT_MAX];
 
-enum state {ready, running, blocked, zombie};
+enum state {ready, running, exited};
 
 struct	TCB
 {
@@ -28,7 +29,8 @@ struct	TCB
 	ucontext_t* context;
 	void* stack;
 	int returnValue;
-	int joinThread;
+	bool joined;
+	int blocked;
 };
 
 struct TCB* NewTCB(void)
@@ -38,18 +40,13 @@ struct TCB* NewTCB(void)
 	newTCB->status = ready;
 	newTCB->context = malloc(sizeof(ucontext_t));
 	newTCB->stack = uthread_ctx_alloc_stack();
-	newTCB->joinThread = -1;
+	newTCB->joined = false;
 	return newTCB;
 }
 
-int initialization(void)
+void initialization(void)
 {
 	queue_t q = queue_create();
-
-	if(q == NULL)
-	{
-		return -1;
-	}
 
 	readyQueue = q;
 
@@ -59,30 +56,36 @@ int initialization(void)
 	getcontext(newThread->context);
 	
 	threadArray[NextTID] = newThread;
+	runningThread = threadArray[NextTID];
 	
-	runningThread = newThread;
+	preempt_start();
 	
-	NextTID++;
-	return 0;
+	
 }
 
 void uthread_yield(void)
 {
 	/* TODO Phase 2 */
 	struct TCB* newThread;
-	
+	struct TCB* currentThread = runningThread;
 	if(queue_dequeue(readyQueue,(void*)&newThread) != -1)
 	{
-		if(runningThread->status != blocked && runningThread->status != zombie)
+		newThread->status = running;
+		runningThread = newThread;
+		if(currentThread->status == ready || runningThread->status == running)
 		{
-			runningThread->status = ready;
-			queue_enqueue(readyQueue,(void*)runningThread);
+			if(currentThread->tid != 0)
+			{
+				currentThread->status = ready;
+
+				queue_enqueue(readyQueue,(void*)currentThread);
+			}
+			
 		}
 		
-		newThread->status = running;
-		
-		uthread_ctx_switch(runningThread->context, newThread->context);		//switch from current thread
-		runningThread = newThread;						//to next ready thread
+		preempt_disable();
+		uthread_ctx_switch(currentThread->context, runningThread->context);	
+		preempt_enable();
 	}
 	
 }
@@ -99,11 +102,15 @@ int uthread_create(uthread_func_t func, void *arg)
 
 	if(NextTID == 0)
 	{
-		return initialization();
+		initialization();
 		
 	}
-	
+
+
+	preempt_disable();
+	NextTID++;
 	struct TCB* newThread = NewTCB();
+	newThread->tid = NextTID;
 	
 	if(newThread == NULL)
 	{
@@ -115,32 +122,38 @@ int uthread_create(uthread_func_t func, void *arg)
 		return -1;
 	}
 		
-
 	 
 	if(uthread_ctx_init(newThread->context, newThread->stack, func,arg) != 0)
 	{
 		return -1;
 	}
 	
-	queue_enqueue(readyQueue,newThread);
-
 	threadArray[NextTID] = newThread;
 	
-	NextTID++;
+	queue_enqueue(readyQueue,newThread);
+
+
+	preempt_enable();
+	
+	
 	return	newThread->tid;
 }
 
 void uthread_exit(int retval)
 {
 	/* TODO Phase 2 */
-	runningThread->status = zombie;
+
+	preempt_disable();
+
+	runningThread->status = exited;
 	runningThread->returnValue = retval;
 	
-	if(runningThread->joinThread != -1)
+	if(runningThread->joined != false)
 	{
-		queue_enqueue(readyQueue,threadArray[runningThread->joinThread]);
+		queue_enqueue(readyQueue,threadArray[runningThread->blocked]);
 	}
 	
+	preempt_enable();
 	uthread_yield();
 }
 
@@ -148,19 +161,25 @@ int uthread_join(uthread_t tid, int *retval)
 {
 	/* TODO Phase 2 */
 	/* TODO Phase 3 */
-	if(tid == 0 || tid == runningThread->tid || tid > NextTID || threadArray[tid]->status == zombie || threadArray[tid]->status == blocked)
+
+	if(tid == 0 || tid == runningThread->tid || tid > NextTID || threadArray[tid]->status == exited || threadArray[tid]->joined == true)
 	{
 		return -1;
 	}
 
-	threadArray[tid]->joinThread = runningThread->tid;
-	runningThread->status = blocked;
+	threadArray[tid]->blocked = runningThread->tid;
+	runningThread->joined = true;
 	
 	uthread_yield();
+
+	uthread_ctx_destroy_stack(threadArray[tid]->stack);
+
 	
 	if(retval != NULL)
 	{
 		*retval = threadArray[tid]->returnValue;
 	}
+
 	return 0;
 }
+

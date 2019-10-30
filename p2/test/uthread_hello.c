@@ -21,6 +21,5 @@ int main(void)
 
 	tid = uthread_create(hello, NULL);
 	uthread_join(tid, NULL);
-
 	return 0;
 }

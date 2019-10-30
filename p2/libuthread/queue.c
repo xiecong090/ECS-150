@@ -74,11 +74,14 @@ int queue_enqueue(queue_t queue, void *data)
 int queue_dequeue(queue_t queue, void **data)
 {
 	/* TODO Phase 1 */
+
 	if(queue == NULL || data == NULL || queue->size == 0){
 		return -1;
 	}
-	
+
+	struct Qnode* temp = queue->front;
 	*data = queue->front->item;
+	free(temp);
 
 	queue->front = queue->front->next;
 	if(queue->front == NULL){
@@ -88,25 +91,37 @@ int queue_dequeue(queue_t queue, void **data)
 	return 0;
 }
 
-//delete the front node if its item == data;
+//delete the node if its item == data;
 int queue_delete(queue_t queue, void *data)
 {
 	/* TODO Phase 1 */
 	if(queue == NULL || data == NULL){
 		return -1;
 	}
-	if(*(int*)(queue->front->item) != *(int*)data){
-		return -1;
+	
+	struct Qnode* prev = queue->front;
+	struct Qnode* temp = queue->front;
+	
+	if(temp != NULL && temp->item == data)
+	{
+		prev = temp->next;
+		free(temp);
+		return 0;
 	}
 	
-	struct Qnode* temp = queue->front;
-	free(temp);
- 	 	
-	queue->front = queue->front->next;
-	if(queue->front == NULL){
-		queue->rear = NULL;
+	while (temp != NULL && temp->item != data) 
+	{ 
+	prev = temp; 
+	temp = temp->next; 
+	} 
+
+	if(temp == NULL)	
+	{
+		return -1;
 	}
-	queue->size--;
+
+	prev->next = temp->next;
+	free(temp);
 	return 0;
 }
 
@@ -117,17 +132,23 @@ int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 	if(queue == NULL || func == NULL){
 		return -1;
 	}
+
 	struct Qnode* current = queue->front;
+
+
 	void* nodeItem;
-	printf("I am 11!\n");
 	while(current != NULL)
 	{
 		nodeItem = current->item;
+
 		if(func(nodeItem,arg) == 1){
 			*data = nodeItem;
 			return 0;
 		}
-		current = current->next;
+
+		current = current->next;	
+		
+	
 	}
 	return 0;
 	
@@ -142,3 +163,4 @@ int queue_length(queue_t queue)
 	}
 	return queue->size;
 }
+
